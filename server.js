@@ -337,6 +337,7 @@ function beginRound(room) {
   room.meterPoints = null;
   room.tapEndsAt = (round.kind === "tap" || round.kind === "duck") ? Date.now() + (round.kind === "duck" ? DUCK_MS : TAP_MS) : 0;
   room.goAt = round.kind === "react" ? Date.now() + 2500 + Math.floor(Math.random() * 2000) : 0;
+  room.botAt = Date.now() + 1500;
 }
 
 function view(room, id) {
@@ -386,6 +387,7 @@ function view(room, id) {
     meterPoints: revealed ? room.meterPoints : null,
     word: revealed && round && round.word ? round.word : null,
     watch: room.watch || null,
+    bots: room.players.map((p) => !!p.bot),
     draw: room.draw ? {
       round: room.draw.round,
       total: room.draw.total,
@@ -415,6 +417,15 @@ function handleApi(name, body, reply) {
 
   if (name === "create") {
     const room = makeRoom(clean(body.name, 24) || "Someone");
+    const mine = room.players[0];
+    reply({ ok: true, code: room.code, pid: mine.id, room: view(room, mine.id) });
+    return;
+  }
+
+  if (name === "demo") {
+    const room = makeRoom(clean(body.name, 24) || "Admin");
+    room.players.push({ id: newId(), name: "Jodi Bot", seen: Date.now(), bot: true });
+    room.botAt = Date.now() + 1200;
     const mine = room.players[0];
     reply({ ok: true, code: room.code, pid: mine.id, room: view(room, mine.id) });
     return;
@@ -776,6 +787,7 @@ function handleApi(name, body, reply) {
       room.phase = "done";
     } else {
       room.board.turn = 1 - index;
+      room.botAt = Date.now() + 700;
     }
     reply({ ok: true, room: view(room, id) });
     return;
@@ -793,6 +805,7 @@ function handleApi(name, body, reply) {
         room.draw = null;
       } else {
         room.draw = newDraw(nextNo);
+        room.botAt = Date.now() + 1500;
       }
       room.touched = Date.now();
       reply({ ok: true, room: view(room, id) });
@@ -1074,6 +1087,116 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, "0.0.0.0", () => {
   console.log("Jodi chalu — port " + PORT);
 });
+
+/* ----------------------------------------------------------------- bot */
+
+function botAnswer(round, index) {
+  const pick = (n) => String(crypto.randomInt(n || 1));
+  if (round.kind === "quiz") {
+    return crypto.randomInt(2) === 0 ? String(round.correct) : pick((round.options || []).length);
+  }
+  if (round.kind === "spell") {
+    return crypto.randomInt(2) === 0 ? round.word : "galat spelling";
+  }
+  if (round.kind === "choice" || round.kind === "rps" || round.kind === "penalty" || round.kind === "cricket") {
+    const options = optionsFor(round, index) || [];
+    return pick(options.length || 2);
+  }
+  if (round.kind === "tap") return String(18 + crypto.randomInt(40));
+  if (round.kind === "react") return String(260 + crypto.randomInt(260));
+  if (round.kind === "duck") return String(5 + crypto.randomInt(20));
+  if (round.kind === "meter") return String(25 + crypto.randomInt(50));
+  const lines = [
+    "Hmm… pehle tum batao?",
+    "Aaj bas tumhari yaad aayi.",
+    "Yeh sawaal mushkil hai yaar.",
+    "Main soch raha hoon, tumhara jawab sunna chahta hoon."
+  ];
+  return lines[crypto.randomInt(lines.length)];
+}
+
+function botBoardMove(board) {
+  const empty = [];
+  if (board.type === "ttt") {
+    board.cells.forEach((cell, i) => { if (cell === -1) empty.push(i); });
+  } else {
+    for (let c = 0; c < C4_COLS; c += 1) {
+      if (board.cells[c] === -1) empty.push(c);
+    }
+  }
+  return empty.length ? empty[crypto.randomInt(empty.length)] : -1;
+}
+
+function botPaint(room) {
+  const draw = room.draw;
+  if (!draw || draw.strokes.length) return;
+  const pts = [
+    [250, 200], [420, 200], [420, 380], [250, 380], [250, 200],
+    [190, 200], [335, 120], [480, 200],
+    [335, 380], [335, 470]
+  ];
+  for (let i = 1; i < pts.length; i += 1) {
+    draw.strokes.push([pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]]);
+  }
+}
+
+function botStep(room) {
+  const botIndex = room.players.findIndex((p) => p.bot);
+  if (botIndex < 0) return;
+  if (room.botAt && Date.now() < room.botAt) return;
+
+  const bot = room.players[botIndex];
+  const call = (name, body) => handleApi(
+    name,
+    Object.assign({ code: room.code, pid: bot.id }, body),
+    () => {}
+  );
+
+  if (room.phase === "lobby") return;
+
+  if (room.game === "draw" && room.draw) {
+    if (room.draw.revealed) return;
+    if (room.draw.painter === botIndex) {
+      botPaint(room);
+      if (Date.now() > (room.botAt || 0) + 6000) {
+        room.draw.revealed = true;
+        room.draw.answer = room.draw.word;
+      }
+      return;
+    }
+    if (!room.draw.guesses.length) call("guess", { text: "kya bana hai?" });
+    else call("guess", { text: room.draw.word });
+    room.botAt = Date.now() + 6000;
+    return;
+  }
+
+  if (room.phase !== "answering") return;
+
+  if (room.board) {
+    if (room.board.turn === botIndex && !room.board.over) {
+      const col = botBoardMove(room.board);
+      if (col >= 0) call("move", { col: col });
+      room.botAt = Date.now() + 900;
+    }
+    return;
+  }
+
+  const round = room.rounds[room.i];
+  if (!round) return;
+  if (room.answers[botIndex] != null) return;
+  call("answer", { value: botAnswer(round, botIndex) });
+}
+
+setInterval(() => {
+  for (const [code, room] of rooms) {
+    if (!room.players.some((p) => p.bot)) continue;
+    try {
+      botStep(room);
+    } catch (e) {
+      /* bot ki galti se server na gire */
+    }
+  }
+}, 700);
 
 /* purane rooms hatao, memory saaf rakho */
 setInterval(() => {

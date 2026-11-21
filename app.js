@@ -410,6 +410,26 @@
     });
   }
 
+  function createDemo() {
+    if (!app.name) return toast("Pehle naam");
+    api("/api/demo", { name: app.name }).then(function (res) {
+      if (!res || !res.ok) {
+        if (res && res.gate) return toast("Preview session khatam — toolbar se Run dobara dabao");
+        return toast((res && res.error) || "Demo nahi khula");
+      }
+      app.code = res.code;
+      app.pid = res.pid;
+      app.room = res.room;
+      app.sig = signature(res.room);
+      save();
+      startSync();
+      render();
+      toast("Demo ready — koi bhi game chuno");
+    }).catch(function (err) {
+      toast("Server se baat nahi hui: " + ((err && err.message) || "network"));
+    });
+  }
+
   function joinRoom(code) {
     code = String(code || "").trim().toUpperCase();
     if (code.length !== 6) return toast("6 letter ka code daalo");
@@ -708,6 +728,11 @@
           '<input class="input code-input" id="in-code" maxlength="6" autocapitalize="characters" autocomplete="off" placeholder="ABCDEF"></label>' +
         '<button class="btn ghost" data-act="join">Judo</button>' +
       "</section>" +
+      '<section class="card" style="background:linear-gradient(150deg,#fff,var(--pista-soft))">' +
+        '<p class="kicker">admin · demo</p>' +
+        '<p class="mid">Akela sab kuch dekh lo — <b>Jodi Bot</b> doosri taraf khelega, kisi ko invite karne ki zaroorat nahi. Saare 17 games turant khul jaayenge.</p>' +
+        '<button class="btn" data-act="demo">Demo kholo</button>' +
+      "</section>" +
       '<a class="card soft" href="#/notes" style="display:block;text-decoration:none;color:inherit">' +
         '<span class="kicker">notes</span>' +
         '<p class="mid">Chhota note likho aur link bana ke bhej do.</p>' +
@@ -776,11 +801,15 @@
       return '<h2 class="h2">' + esc(cat) + "</h2>" + '<div class="grid">' + tiles + "</div>";
     }).join("");
 
+    var demo = (room.bots || []).some(function (b) { return b; });
+
     return topBar() +
       '<section class="card hero">' +
-        '<p class="kicker">dono aa gaye</p>' +
+        '<p class="kicker">' + (demo ? "demo · bot ke saath" : "dono aa gaye") + "</p>" +
         '<h1 class="h1">' + esc(players[0]) + " × " + esc(players[1]) + "</h1>" +
-        '<p class="sub">Game chuno — dono phone pe ek saath shuru hoga.</p>' +
+        '<p class="sub">' + (demo
+          ? "Game chuno — bot doosri taraf khelega. Baad me kisi ko bulana ho to yahi code share kar dena."
+          : "Game chuno — dono phone pe ek saath shuru hoga.") + "</p>" +
       "</section>" +
       ritualCard() +
       groups +
@@ -2308,6 +2337,7 @@
     if (act === "save-name") { saveName(); return; }
     if (act === "ping") { pingServer().then(render); return; }
     if (act === "create") { createRoom(); return; }
+    if (act === "demo") { createDemo(); return; }
     if (act === "join") { joinFromInput(); return; }
     if (act === "join-with-name") {
       var name = val("in-name");

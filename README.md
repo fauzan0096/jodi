@@ -92,6 +92,18 @@ browser me possible nahi (`getDisplayMedia` iOS Safari me nahi hai).
 Ek phone pe bhi test ho sakta hai: room banao, code note karo, wahi preview link Safari me
 kholo aur code se judo — doosra banda ban jaoge. Do tab sabse aasan hain.
 
+## Admin / demo mode
+
+Kisi ko invite kiye bina sab kuch dekhna ho: home screen pe **"Demo kholo"** dabao.
+Ek room khulta hai jisme doosra player **Jodi Bot** hai — saare 17 games turant khelne layak,
+bot khud jawab/chaal karta hai (1–2 second ke andar), tum Next dabate ho.
+
+- Demo room me bot ka koi data nahi jaata, koi invite nahi, koi code share karne ki zaroorat nahi.
+- Bot ke saath drawing bhi chalti hai: bot painter ho to doodle banata hai aur 7s me round
+  khatam, bot guesser ho to do-guess me word pakad leta hai.
+- Demo room bhi memory me hi hai — 3 ghante me khud mit jaata hai.
+- Asli partner ko bulana ho to wahi room code share kar do (bot ki jagah nahi milegi — naya room banao).
+
 ## Deploy
 
 `Run`/Publish (FreeMilk) Dockerfile se build karke chalata hai. Coding: `server.js` me rooms
