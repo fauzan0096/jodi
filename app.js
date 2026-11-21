@@ -53,7 +53,8 @@
     reactTimer: null,
     live: null,
     liveOpen: false,
-    liveWatchdog: null
+    liveWatchdog: null,
+    ping: null
   };
 
   /* ------------------------------------------------------------- storage */
@@ -192,7 +193,33 @@
       body: JSON.stringify(body)
     } : { method: "GET" };
     return fetch(path, opts).then(function (res) {
-      return res.json();
+      return res.text().then(function (text) {
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          return { ok: false, error: "Server ne JSON nahi bheja (" + res.status + ")" };
+        }
+      });
+    });
+  }
+
+  function pingServer() {
+    var started = Date.now();
+    app.ping = null;
+    return api("/api/ping").then(function (res) {
+      app.ping = {
+        ok: !!(res && res.ok),
+        ms: Date.now() - started,
+        why: res && res.ok ? "" : ((res && res.error) || "ajeeb jawab")
+      };
+      return app.ping;
+    }).catch(function (err) {
+      app.ping = {
+        ok: false,
+        ms: Date.now() - started,
+        why: (err && err.message) ? err.message : "network error"
+      };
+      return app.ping;
     });
   }
 
@@ -259,6 +286,8 @@
         clearTimeout(app.liveWatchdog);
         app.liveWatchdog = null;
       }
+      stopPolling();
+      app.poll = setInterval(pollOnce, 2500);
     };
     app.live.onmessage = function (event) {
       try {
@@ -317,8 +346,8 @@
         else toast(res.error || "Nahi hua");
       }
       return res;
-    }).catch(function () {
-      toast("Server se baat nahi hui");
+    }).catch(function (err) {
+      toast("Server se baat nahi hui: " + ((err && err.message) || "network"));
     });
   }
 
@@ -358,7 +387,10 @@
       save();
       startSync();
       render();
-    }).catch(function () { toast("Server se baat nahi hui"); });
+    }).catch(function (err) {
+      toast("Server se baat nahi hui: " + ((err && err.message) || "network"));
+      pingServer().then(render);
+    });
   }
 
   function joinRoom(code) {
@@ -375,7 +407,10 @@
       if (location.hash && location.hash !== "#/") location.hash = "#/";
       startSync();
       render();
-    }).catch(function () { toast("Server se baat nahi hui"); });
+    }).catch(function (err) {
+      toast("Server se baat nahi hui: " + ((err && err.message) || "network"));
+      pingServer().then(render);
+    });
   }
 
   function joinFromInput() {
@@ -624,6 +659,14 @@
       "</section>";
   }
 
+  function serverLine() {
+    var p = app.ping;
+    if (!p) return '<p class="tiny center">server check ho raha hai…</p>';
+    if (p.ok) return '<p class="tiny center">server: theek hai · ' + p.ms + "ms</p>";
+    return '<p class="tiny center" style="color:#A63A58">server tak nahi pahunch raha (' +
+      esc(p.why) + ') · <a href="#" data-act="ping" style="color:var(--rose)">dobara check</a></p>';
+  }
+
   function doorView() {
     return topBar() +
       '<section class="card hero">' +
@@ -645,7 +688,8 @@
         '<span class="kicker">notes</span>' +
         '<p class="mid">Chhota note likho aur link bana ke bhej do.</p>' +
         '<span class="linky">Kholo →</span>' +
-      "</a>";
+      "</a>" +
+      serverLine();
   }
 
   function joinView(code) {
@@ -2238,6 +2282,7 @@
     var act = el.getAttribute("data-act");
 
     if (act === "save-name") { saveName(); return; }
+    if (act === "ping") { pingServer().then(render); return; }
     if (act === "create") { createRoom(); return; }
     if (act === "join") { joinFromInput(); return; }
     if (act === "join-with-name") {
@@ -2323,5 +2368,6 @@
 
   load();
   render();
+  pingServer().then(render);
   if (app.code && app.pid) startSync();
 })();

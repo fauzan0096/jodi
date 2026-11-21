@@ -30,8 +30,7 @@ const SECURITY = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer",
   "Permissions-Policy": "camera=(self), microphone=(self), geolocation=(), payment=()",
-  "X-Frame-Options": "DENY",
-  "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src https://www.youtube.com https://www.youtube-nocookie.com; media-src 'self' blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+  "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://*.freemilk.app; frame-src https://www.youtube.com https://www.youtube-nocookie.com; media-src 'self' blob:; base-uri 'none'; form-action 'none'"
 };
 const DUCK_MS = 15000;
 const DRAW_MS = 90000;
@@ -943,33 +942,39 @@ function streamRoom(req, res, url) {
 
   let alive = true;
   let last = "";
-
-  const send = () => {
-    if (!alive) return;
-    player.seen = Date.now();
-    room.touched = Date.now();
-    if (room.game === "draw" && room.draw && !room.draw.revealed && Date.now() > room.draw.endsAt) {
-      room.draw.revealed = true;
-      room.draw.answer = "";
-    }
-    const payload = JSON.stringify({ ok: true, room: view(room, id) });
-    if (payload === last) {
-      res.write(": ping\n\n");
-      return;
-    }
-    last = payload;
-    res.write("data: " + payload + "\n\n");
-  };
-
-  send();
-  const timer = setInterval(send, 350);
+  let timer = null;
 
   const close = () => {
     if (!alive) return;
     alive = false;
-    clearInterval(timer);
+    if (timer) clearInterval(timer);
     try { res.end(); } catch (e) { /* pehle se band */ }
   };
+
+  const send = () => {
+    if (!alive) return;
+    try {
+      player.seen = Date.now();
+      room.touched = Date.now();
+      if (room.game === "draw" && room.draw && !room.draw.revealed && Date.now() > room.draw.endsAt) {
+        room.draw.revealed = true;
+        room.draw.answer = "";
+      }
+      const payload = JSON.stringify({ ok: true, room: view(room, id) });
+      if (payload === last) {
+        res.write(": ping\n\n");
+        return;
+      }
+      last = payload;
+      res.write("data: " + payload + "\n\n");
+    } catch (e) {
+      close();
+    }
+  };
+
+  send();
+  timer = setInterval(send, 350);
+
   req.on("close", close);
   req.on("error", close);
   res.on("error", close);
@@ -982,14 +987,14 @@ const server = http.createServer((req, res) => {
   const ip = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "")
     .split(",")[0].trim();
   const isGet = req.method === "GET" || req.method === "HEAD";
-  if (!allow(ip || "anon", isGet ? 300 : 120)) {
+  if (!allow(ip || "anon", isGet ? 1200 : 240)) {
     sendJson(res, { ok: false, error: "Bahut jaldi — ek minute ruko" }, 429);
     return;
   }
 
   if (req.method === "GET" || req.method === "HEAD") {
-    if (pathname === "/health") {
-      sendJson(res, { ok: true });
+    if (pathname === "/health" || pathname === "/api/ping") {
+      sendJson(res, { ok: true, t: Date.now(), rooms: rooms.size });
       return;
     }
     if (pathname === "/api/state") {
