@@ -55,7 +55,8 @@
     live: null,
     liveOpen: false,
     liveWatchdog: null,
-    ping: null
+    ping: null,
+    aim: null
   };
 
   /* ------------------------------------------------------------- storage */
@@ -512,6 +513,7 @@
 
   function nextRound() {
     if (!app.code) return;
+    app.aim = null;
     stopTap();
     post("/api/next", { code: app.code, pid: app.pid });
   }
@@ -919,7 +921,8 @@
         "</div>";
     } else if (round.kind === "penalty") {
       var kick = room.roundKick || {};
-      inner = '<p class="verdict ' + (kick.goal ? "good" : "bad") + '">' +
+      inner = '<canvas class="scene" id="scene" width="640" height="420"></canvas>' +
+        '<p class="verdict ' + (kick.goal ? "good" : "bad") + '">' +
           (kick.goal ? "⚽ Goal!" : "🧤 Save!") + "</p>" +
         '<div class="reveal">' +
           box(room.players[kick.shooter] || "Shooter", PEN_OPTS[kick.target] || "—", kick.shooter === room.me) +
@@ -928,7 +931,8 @@
     } else if (round.kind === "cricket") {
       var ball = room.roundBall || {};
       var label2 = ball.out ? "OUT! 🎯" : (ball.runs === 0 ? "0 run" : ball.runs + " run" + (ball.runs > 1 ? "s" : ""));
-      inner = '<p class="verdict ' + (ball.out ? "bad" : (ball.runs >= 4 ? "good" : "")) + '">' +
+      inner = '<canvas class="scene" id="scene" width="640" height="420"></canvas>' +
+        '<p class="verdict ' + (ball.out ? "bad" : (ball.runs >= 4 ? "good" : "")) + '">' +
           esc(label2) + "</p>" +
         '<div class="reveal">' +
           box(room.players[ball.batter] || "Batter", CRICKET_BAT[ball.shot] || "—", ball.batter === room.me) +
@@ -954,7 +958,8 @@
         '<p class="mid center">' + esc(da === db ? "Barabar!" : (da > db ? "Tum jeete 🏆" : theirName + " jeeta 🏆")) + "</p>";
     } else if (round.kind === "meter") {
       var mp = room.meterPoints || [0, 0];
-      inner = '<div class="reveal">' +
+      inner = '<canvas class="scene" id="scene" width="640" height="420"></canvas>' +
+        '<div class="reveal">' +
           box(mineName, mp[room.me] + " point", true) +
           box(theirName, mp[1 - room.me] + " point", false) +
         "</div>" +
@@ -1177,8 +1182,12 @@
     }
 
     if (room.myAnswer != null) {
+      var waitingScene = (round.kind === "penalty" || round.kind === "cricket" || round.kind === "meter")
+        ? '<canvas class="scene" id="scene" width="640" height="420"></canvas>'
+        : "";
       return head +
         '<section class="card center">' +
+          waitingScene +
           '<p class="kicker">jawab chala gaya</p>' +
           '<h2 class="prompt">' + esc(answerLabel(room, round, room.myAnswer, true)) + "</h2>" +
           '<p class="sub">' + esc(room.players[1 - room.me] || "Partner") + ' ka intezaar… <span class="blink">●</span></p>' +
@@ -1204,8 +1213,20 @@
     } else if (round.kind === "duck") {
       pick = '<div class="duck-sky" id="duck-sky"><span class="duck-count" id="duck-count">0</span></div>' +
         '<p class="tiny center"><span class="tap-left">15.0s</span> bacha — duck pe tap karo</p>';
+    } else if (round.kind === "penalty") {
+      pick = '<canvas class="scene" id="scene" width="640" height="420"></canvas>' +
+        '<div class="choices mini">' + (room.myOptions || []).map(function (option, index) {
+          return '<button class="choice" data-act="answer" data-value="' + index + '">' + esc(option) + "</button>";
+        }).join("") + "</div>" +
+        '<p class="tiny center">Goal pe tap karo — ya neeche se direction chuno.</p>';
+    } else if (round.kind === "cricket") {
+      pick = '<canvas class="scene" id="scene" width="640" height="420"></canvas>' +
+        '<div class="choices">' + (room.myOptions || []).map(function (option, index) {
+          return '<button class="choice" data-act="answer" data-value="' + index + '">' + esc(option) + "</button>";
+        }).join("") + "</div>";
     } else if (round.kind === "meter") {
-      pick = '<div class="meter" data-act="meter">' +
+      pick = '<canvas class="scene" id="scene" width="640" height="420"></canvas>' +
+        '<div class="meter" data-act="meter">' +
           '<div class="meter-zone"></div>' +
           '<div class="meter-mark" id="meter-mark"></div>' +
         "</div>" +
@@ -1659,6 +1680,80 @@
       self.srcObject = null;
       self.classList.remove("on");
     }
+  }
+
+  /* -------------------------------------------------------------- scene */
+
+  var scene = { raf: null, kind: "" };
+
+  function stopScene() {
+    if (scene.raf) {
+      cancelAnimationFrame(scene.raf);
+      scene.raf = null;
+    }
+    scene.kind = "";
+  }
+
+  function sceneState(room, elapsed) {
+    var round = room.round;
+    var revealed = room.phase === "reveal" || room.phase === "done";
+    var st = {
+      mode: revealed ? "shot" : "aim",
+      t: Math.min(1, elapsed / 0.9)
+    };
+
+    if (round.kind === "penalty") {
+      var kick = room.roundKick || {};
+      st.targetZone = revealed ? Number(kick.target) : null;
+      st.diveZone = revealed ? Number(kick.dive) : null;
+      st.saved = revealed ? !kick.goal : false;
+      st.aim = !revealed && app.aim ? { zone: app.aim.zone } : null;
+    } else if (round.kind === "meter") {
+      st.aim = Number(revealed ? room.myAnswer : meter.pos) || 0;
+      st.points = revealed && room.meterPoints ? (Number(room.meterPoints[room.me]) || 0) : 0;
+    } else if (round.kind === "cricket") {
+      var ball = room.roundBall || {};
+      st.out = revealed ? !!ball.out : false;
+      st.runs = revealed ? (Number(ball.runs) || 0) : 0;
+    }
+    return st;
+  }
+
+  function startScene() {
+    stopScene();
+    var room = app.room;
+    if (!room || !room.round) return;
+    var kind = room.round.kind;
+    if (kind !== "penalty" && kind !== "cricket" && kind !== "meter") return;
+    var canvas = document.getElementById("scene");
+    if (!canvas || !window.Jodi3D) return;
+    var ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    scene.kind = kind;
+
+    if (kind === "penalty" && room.phase === "answering" && room.myAnswer == null) {
+      canvas.style.touchAction = "none";
+      canvas.addEventListener("pointerdown", function (e) {
+        if (!app.room || app.room.phase !== "answering" || app.room.myAnswer != null) return;
+        var rect = canvas.getBoundingClientRect();
+        var fx = (e.clientX - rect.left) / rect.width;
+        var zone = fx < 0.36 ? 0 : fx > 0.64 ? 2 : 1;
+        app.aim = { zone: zone };
+        submit(String(zone));
+      });
+    }
+
+    var begin = performance.now();
+    var frame = function (now) {
+      if (!app.room || !app.room.round) return;
+      var st = sceneState(app.room, (now - begin) / 1000);
+      if (kind === "penalty") window.Jodi3D.penalty(ctx, st);
+      else if (kind === "meter") window.Jodi3D.hoop(ctx, st);
+      else window.Jodi3D.cricket(ctx, st);
+      scene.raf = requestAnimationFrame(frame);
+    };
+    scene.raf = requestAnimationFrame(frame);
   }
 
   /* ---------------------------------------------------------------- draw */
@@ -2332,6 +2427,7 @@
     stopDuck();
     stopMeter();
     stopDraw();
+    stopScene();
 
     var html;
     if (parts[0] === "in" && parts[1]) {
@@ -2365,6 +2461,7 @@
     armDuck();
     armMeter();
     setupDraw();
+    startScene();
   }
 
   /* -------------------------------------------------------------- wiring */

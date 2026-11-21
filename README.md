@@ -118,6 +118,23 @@ bot khud jawab/chaal karta hai (1–2 second ke andar), tum Next dabate ho.
 - Demo room bhi memory me hi hai — 3 ghante me khud mit jaata hai.
 - Asli partner ko bulana ho to wahi room code share kar do (bot ki jagah nahi milegi — naya room banao).
 
+## 3D-ish scenes (asli khel, text nahi)
+
+`scene3d.js` ek chhota perspective renderer hai — **Canvas 2D + asli projection**, koi WebGL
+ya library nahi. Har point (x, y, depth) metres me hota hai aur screen pe project hota hai,
+isliye goal, pitch aur hoop me asli depth dikhti hai.
+
+- **Penalty** — goal post + net + keeper (dive karta hai) + ball. Shooter **goal pe tap karta hai**
+  (left/centre/right), keeper dive zone chunta hai; reveal pe ball udta hai aur keeper
+  usi taraf jhapta hai — GOAL ya SAVE, dono phone pe wahi scene.
+- **Cricket** — pitch, dono stumps, batter aur bowler; ball, run ya OUT ke hisaab se
+  alag trajectory (chauka hawa me, OUT pe stumps pe).
+- **Basketball** — backboard, rim, net aur ball ka parabola; meter ki position hi shot ka
+  offset ban jaati hai, isliye jo tumne khela wahi dikhta hai.
+
+Scene har frame (requestAnimationFrame) par room ke asli state se banta hai — koi video,
+koi image asset nahi (isliye app halka aur privacy-safe rehta hai).
+
 ## Update fauran kaise aata hai
 
 Teen layer, taaki purana version kabhi chipka na rahe:

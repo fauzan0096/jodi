@@ -19,6 +19,7 @@ const FILES = {
   "/index.html": ["index.html", "text/html; charset=utf-8"],
   "/app.js": ["app.js", "application/javascript; charset=utf-8"],
   "/local.js": ["local.js", "application/javascript; charset=utf-8"],
+  "/scene3d.js": ["scene3d.js", "application/javascript; charset=utf-8"],
   "/sw.js": ["sw.js", "application/javascript; charset=utf-8"],
   "/styles.css": ["styles.css", "text/css; charset=utf-8"],
   "/content.json": ["content.json", "application/json; charset=utf-8"]

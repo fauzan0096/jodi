@@ -11,6 +11,7 @@ const SHELL = [
   "/index.html",
   "/app.js",
   "/local.js",
+  "/scene3d.js",
   "/styles.css",
   "/content.json"
 ];
