@@ -1935,6 +1935,7 @@
 
   function recordRound(room) {
     if (!room || room.phase !== "reveal" || !room.round) return;
+    if (room.bots && room.bots.some(function (b) { return b; })) return;
     if (room.myAnswer == null || room.theirAnswer == null) return;
     var key = room.code + ":" + room.game + ":" + room.roundNo;
     if (hasBookKey(key)) return;
@@ -1980,6 +1981,7 @@
 
   function recordBoard(room) {
     if (!room || room.phase !== "done" || !room.board) return;
+    if (room.bots && room.bots.some(function (b) { return b; })) return;
     var sc = room.score || [0, 0];
     var key = room.code + ":" + room.game + ":board:" + sc[0] + "-" + sc[1] + ":" + room.board.cells.join(",");
     if (hasBookKey(key)) return;
