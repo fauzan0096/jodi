@@ -454,5 +454,173 @@
     }
   };
 
+  /* ------------------------------------------------------- 3D board */
+
+  api.board = function (ctx, st) {
+    var cam = makeCam(3.1, 0.95, 0.5);
+    var cols = st.type === "ttt" ? 3 : 7;
+    var rows = st.type === "ttt" ? 3 : 6;
+    var X0 = -3.1;
+    var X1 = 3.1;
+    var D0 = 4.3;
+    var D1 = 8.9;
+    var cw = (X1 - X0) / cols;
+    var ch = (D1 - D0) / rows;
+    var hits = [];
+
+    stadium(ctx, "#091A28", "#0E2637");
+    ground(ctx, cam, 3, 11, 22, 22, "#132A3C", "#0F2231");
+
+    poly(ctx, [
+      [cam.x(X0, D0), cam.y(0, D0)],
+      [cam.x(X1, D0), cam.y(0, D0)],
+      [cam.x(X1, D1), cam.y(0, D1)],
+      [cam.x(X0, D1), cam.y(0, D1)]
+    ], "#1B2C3E");
+
+    for (var r = 0; r < rows; r += 1) {
+      for (var c = 0; c < cols; c += 1) {
+        var cx = X0 + (c + 0.5) * cw;
+        var cd = D0 + (r + 0.5) * ch;
+        var hw = cw * 0.43;
+        var hd = ch * 0.43;
+        poly(ctx, [
+          [cam.x(cx - hw, cd - hd), cam.y(0, cd - hd)],
+          [cam.x(cx + hw, cd - hd), cam.y(0, cd - hd)],
+          [cam.x(cx + hw, cd + hd), cam.y(0, cd + hd)],
+          [cam.x(cx - hw, cd + hd), cam.y(0, cd + hd)]
+        ], "#152333");
+
+        var idx = r * cols + c;
+        var v = st.cells && st.cells[idx] != null ? st.cells[idx] : -1;
+        var px = cam.x(cx, cd);
+        var py = cam.y(0, cd);
+        var rad = Math.max(4, cam.s(cw * 0.36, cd));
+
+        if (st.type === "ttt") {
+          if (v >= 0) {
+            ctx.save();
+            ctx.font = "bold " + Math.round(rad * 2) + "px Georgia, serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = v === 0 ? "#FF7A9C" : "#F9D34C";
+            ctx.fillText(v === 0 ? "X" : "O", px, py - rad * 0.3);
+            ctx.restore();
+          }
+        } else {
+          ctx.beginPath();
+          ctx.ellipse(px, py, rad, rad * 0.42, 0, 0, Math.PI * 2);
+          ctx.fillStyle = v === 0 ? "#E76A8B" : v === 1 ? "#F5B942" : "#0C1725";
+          ctx.fill();
+          if (v >= 0) {
+            ctx.beginPath();
+            ctx.ellipse(px - rad * 0.25, py - rad * 0.12, rad * 0.3, rad * 0.12, 0, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255,255,255,0.35)";
+            ctx.fill();
+          }
+        }
+
+        hits.push({
+          idx: idx,
+          col: c,
+          x: px,
+          y: py,
+          size: Math.max(22, rad * 2.4)
+        });
+      }
+    }
+
+    return hits;
+  };
+
+  /* --------------------------------------------------- stage backdrop */
+
+  function cardBack(ctx, cam, wx, d, t) {
+    var w = 0.62;
+    var h = 0.9;
+    var lift = 0.06 * Math.sin(t * 1.4);
+    var x0 = cam.x(wx - w, d);
+    var x1 = cam.x(wx + w, d);
+    var yTop = cam.y(h + lift, d);
+    var yBot = cam.y(0, d);
+    ctx.save();
+    ctx.fillStyle = "#FDF3E7";
+    ctx.strokeStyle = "rgba(231,106,139,0.8)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x0, yBot);
+    ctx.lineTo(x0 + (x1 - x0) * 0.08, yTop);
+    ctx.lineTo(x1 - (x1 - x0) * 0.08, yTop);
+    ctx.lineTo(x1, yBot);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "rgba(231,106,139,0.85)";
+    ctx.font = "bold " + Math.max(10, Math.round((yBot - yTop) * 0.4)) + "px Georgia, serif";
+    ctx.textAlign = "center";
+    ctx.fillText("♥", (x0 + x1) / 2, yTop + (yBot - yTop) * 0.58);
+    ctx.restore();
+  }
+
+  api.stage = function (ctx, st) {
+    var t = st.t || 0;
+    var cam = makeCam(2.3, 0.8, 0.46);
+
+    if (st.kind === "arena") {
+      stadium(ctx, "#20100E", "#2A1512");
+      ground(ctx, cam, 3, 12, 20, 20, "#3A1D18", "#2E1713");
+
+      ctx.beginPath();
+      ctx.ellipse(cam.x(0, 7), cam.y(0, 7), cam.s(3.4, 7), cam.s(3.4, 7) * 0.32, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255,180,90,0.85)";
+      ctx.lineWidth = 6;
+      ctx.stroke();
+
+      for (var i = 0; i < 6; i += 1) {
+        var a = (i / 6) * Math.PI * 2 + t * 0.3;
+        var px = Math.cos(a) * 3.6;
+        var pd = 7 + Math.sin(a) * 1.6;
+        line(ctx, cam, [px, 0, pd], [px, 1.1, pd], "#F9D34C", 4);
+        var glow = ctx.createRadialGradient(cam.x(px, pd), cam.y(1.2, pd), 1, cam.x(px, pd), cam.y(1.2, pd), 40);
+        glow.addColorStop(0, "rgba(255,210,120,0.5)");
+        glow.addColorStop(1, "rgba(255,210,120,0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(cam.x(px, pd) - 40, cam.y(1.2, pd) - 40, 80, 80);
+      }
+    } else {
+      stadium(ctx, "#141022", "#1E1630");
+      ground(ctx, cam, 3, 12, 20, 20, "#241B33", "#1C1428");
+
+      ctx.beginPath();
+      ctx.ellipse(cam.x(0, 7.5), cam.y(0, 7.5), cam.s(3.2, 7.5), cam.s(3.2, 7.5) * 0.34, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "#3A2A22";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,214,150,0.25)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      cardBack(ctx, cam, -1.5, 7.1, t);
+      cardBack(ctx, cam, 1.6, 7.9, t + 1.4);
+
+      var gx = cam.x(0, 7.2);
+      var gy = cam.y(0.9, 7.2);
+      var glow2 = ctx.createRadialGradient(gx, gy, 2, gx, gy, 130);
+      glow2.addColorStop(0, "rgba(255,196,110,0.45)");
+      glow2.addColorStop(1, "rgba(255,196,110,0)");
+      ctx.fillStyle = glow2;
+      ctx.fillRect(gx - 130, gy - 130, 260, 260);
+    }
+
+    for (var s = 0; s < 14; s += 1) {
+      var sd = 4 + ((s * 1.7 + t * 0.6) % 8);
+      var sx = Math.sin(s * 2.1 + t * 0.7) * 4;
+      ctx.beginPath();
+      ctx.arc(cam.x(sx, sd), cam.y(0.5 + (s % 3) * 0.5, sd), Math.max(1, cam.s(0.06, sd)), 0, Math.PI * 2);
+      ctx.fillStyle = st.kind === "arena" ? "rgba(255,180,120,0.55)" : "rgba(255,214,150,0.55)";
+      ctx.fill();
+    }
+  };
+
   global.Jodi3D = api;
 })(window);
+

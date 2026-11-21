@@ -135,16 +135,38 @@ isliye goal, pitch aur hoop me asli depth dikhti hai.
 Scene har frame (requestAnimationFrame) par room ke asli state se banta hai — koi video,
 koi image asset nahi (isliye app halka aur privacy-safe rehta hai).
 
+## 3D look — saare 17 games
+
+`scene3d.js` ek chhota perspective renderer hai — **Canvas 2D + asli projection**, koi WebGL
+ya library nahi. Har point metres me (x, y, depth) hota hai aur screen pe project hota hai.
+
+- **Penalty** — goal post + net + keeper (dive) + ball; goal pe tap karke shoot, GOAL/SAVE.
+- **Cricket** — pitch, dono stumps, batter, bowler; chauka hawa me, OUT pe stumps.
+- **Basketball** — backboard, rim, net, ball ka parabola (meter hi shot ka offset).
+- **Connect Four** — asli 3D board (7×6) perspective me: cell pe tap karo, disc girta hai;
+  neeche chhota grid fallback bhi hai.
+- **Tic-Tac-Toe** — wahi 3D board, X/O 3×3.
+- **Baaki sab** — table wala 3D stage (mombatti glow, do card, sparkles) ya arena stage
+  (ring, pylons, spotlights) har game ke peeche chalta rehta hai:
+  Daily, This or That, Never Have I, Who's More Likely, Truth or Dare, Trivia, Spell,
+  RPS, Tap Duel, Reaction Duel, Duck Hunt.
+- **Banao Aur Batao** — drawing canvas ko wooden easel frame mil gaya.
+
+Scene har frame (requestAnimationFrame) par room ke asli state se banta hai — koi video,
+koi image asset nahi.
+
 ## Skills (vendor kiye hue)
 
-`skills/` me **threejs-game-skills** pack hai (MIT, [Majid Manzarpour](https://github.com/majidmanzarpour/threejs-game-skills)):
-`threejs-game-director` (router), `gameplay-systems`, `aaa-graphics-builder`, `game-ui-designer`,
-`debug-profiler`, `qa-release`, aur asset generators (3D/image/audio). Yeh sirf agent guidance hai —
-Dockerfile, server aur service worker inhe serve nahi karte. Routing aur project ke rules
-[AGENTS.md](AGENTS.md) me likhe hain.
+Teen skill packs vendor kiye hue hain (sirf agent guidance — Dockerfile/server/SW inhe serve nahi karte):
 
-Agla step iska: three.js ko repo me vendor karke Penalty/Cricket/Basketball ko uspe rebuild
-karna (abhi `scene3d.js` wala Canvas 2D renderer chal raha hai).
+- `skills/` — **threejs-game-skills** (MIT, Majid Manzarpour): director + gameplay/graphics/UI/QA/debug + asset generators
+- `skills/forge/` — **ForgeSkills** (Apache-2.0, sekaikx): orchestrator, art-direction, camera, vfx-impact, visual-iteration, performance, verification, procedural-modeling, texture, audio-wire
+- `skills/game-dev-skill/` — **game-dev-skill** (MIT, aresbit): pipeline + quality-review + PRD seed template
+
+Routing, order aur project ke hard rules [AGENTS.md](AGENTS.md) me hain.
+
+Agla step: three.js ko repo me vendor karke inhi scenes ko uspe migrate karna (abhi
+`scene3d.js` wala Canvas 2D renderer chal raha hai).
 
 ## Update fauran kaise aata hai
 

@@ -1,20 +1,33 @@
 # Jodi — agent notes
 
-## Vendored skills (three.js game pack)
+## Vendored skills (three packs)
 
-This repo vendors the MIT-licensed **threejs-game-skills** pack by Majid Manzarpour into
-`skills/` (upstream: https://github.com/majidmanzarpour/threejs-game-skills).
-It is guidance for agents, not shipped code: `Dockerfile`, `sw.js` and `server.js` never serve it.
+This repo vendors three MIT/Apache-licensed skill packs into `skills/`; they are guidance for
+agents, not shipped code (`Dockerfile`, `sw.js` and `server.js` never serve them).
 
-Router order for any "build / upgrade / finish a game" task:
+**1. `skills/` (root) — threejs-game-skills** by Majid Manzarpour
+(https://github.com/majidmanzarpour/threejs-game-skills, MIT).
+Router: `skills/threejs-game-director/SKILL.md` → gameplay-systems (+ `game-feel.md`,
+`genre-design.md`), aaa-graphics-builder (+ `technical-art.md`, `visual-scorecard.md`),
+game-ui-designer (+ `ui-patterns.md`), debug-profiler, qa-release (+ `release-checks.md`),
+and generators (3d / image / audio) only when asset keys exist.
 
-1. `skills/threejs-game-director/SKILL.md` — read first; it routes to the siblings.
-2. `skills/threejs-gameplay-systems/SKILL.md` + `references/game-feel.md`, `references/genre-design.md`
-3. `skills/threejs-aaa-graphics-builder/SKILL.md` + `references/technical-art.md`, `references/visual-scorecard.md`
-4. `skills/threejs-game-ui-designer/SKILL.md` + `references/ui-patterns.md`
-5. `skills/threejs-debug-profiler/SKILL.md`
-6. `skills/threejs-qa-release/SKILL.md` + `references/release-checks.md`
-7. Generators only when asset keys exist: `threejs-3d-generator`, `threejs-image-generator`, `threejs-audio-generator`
+**2. `skills/forge/` — ForgeSkills** by sekaikx (https://github.com/sekaikx/ForgeSkills, Apache-2.0).
+Use for craft and iteration discipline: `gamedev-orchestrator`, `gamedev-art-direction`,
+`gamedev-gameplay-systems`, `gamedev-camera`, `gamedev-vfx-impact`,
+`gamedev-visual-iteration`, `gamedev-visual-artifacts` (+ `references/symptoms.md`),
+`gamedev-performance`, `gamedev-verification`, `gamedev-game-testing`,
+`gamedev-procedural-modeling`, `gamedev-texture-authoring`, `gamedev-audio-wire`.
+
+**3. `skills/game-dev-skill/` — game-dev-skill** by aresbit
+(https://github.com/aresbit/game-dev-skill, MIT).
+Use `SKILL.md` + `references/pipeline-scene.md`, `quality-review-and-assets.md`,
+`tooling-and-setup.md` for scope → pipeline → quality review, and
+`assets/prd-seed-template.md` as the design brief template.
+
+Order that works for this repo: art-direction + gameplay-systems (what the game is) →
+procedural-modeling / visual-artifacts (how it looks) → vfx-impact + camera (feel) →
+performance + verification (checks) → threejs director for renderer specifics.
 
 ## Project constraints that override skill defaults
 

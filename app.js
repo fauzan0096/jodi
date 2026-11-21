@@ -1080,6 +1080,7 @@
     }
 
     return '<section class="card">' +
+      '<canvas class="scene" id="scene" width="640" height="420"></canvas>' +
       '<p class="kicker">' + esc(status) + "</p>" +
       '<h2 class="prompt">' + (ttt ? "Teen me se teen — X ya O?" : "Char me se chaar — pehle kaun?") + "</h2>" +
       '<div class="board-grid' + (ttt ? " ttt" : "") + '">' + cells + "</div>" +
@@ -1166,6 +1167,7 @@
     if (round.kind === "card") {
       return head +
         '<section class="card hero">' +
+          '<canvas class="scene" id="scene" width="640" height="420"></canvas>' +
           '<p class="kicker">' + esc(round.tag || "card") + "</p>" +
           '<h2 class="prompt">' + esc(round.text) + "</h2>" +
           '<p class="tiny">Jo card aaya, woh karna hai. Koi point nahi, sirf maza.</p>' +
@@ -1249,6 +1251,7 @@
       (round.kind === "cricket" ? cricketBoard(room) : "") +
       (round.kind === "penalty" ? penaltyBoard(room) : "") +
       '<section class="card">' +
+        (STAGE_KINDS[round.kind] ? '<canvas class="scene" id="scene" width="640" height="420"></canvas>' : "") +
         '<p class="kicker">tumhari baari</p>' +
         '<h2 class="prompt">' + esc(prompt) + "</h2>" +
         pick +
@@ -1684,7 +1687,21 @@
 
   /* -------------------------------------------------------------- scene */
 
-  var scene = { raf: null, kind: "" };
+  var scene = { raf: null, kind: "", hits: [] };
+
+  var STAGE_KINDS = {
+    daily: "table",
+    "this-or-that": "table",
+    never: "table",
+    who: "table",
+    cards: "table",
+    quiz: "table",
+    spell: "table",
+    rps: "arena",
+    tap: "arena",
+    react: "arena",
+    duck: "arena"
+  };
 
   function stopScene() {
     if (scene.raf) {
@@ -1724,13 +1741,18 @@
     var room = app.room;
     if (!room || !room.round) return;
     var kind = room.round.kind;
-    if (kind !== "penalty" && kind !== "cricket" && kind !== "meter") return;
+    var isBoard = kind === "board";
+    var sport = kind === "penalty" || kind === "cricket" || kind === "meter";
+    var stageTheme = STAGE_KINDS[kind] || "";
+    if (!isBoard && !sport && !stageTheme) return;
+
     var canvas = document.getElementById("scene");
     if (!canvas || !window.Jodi3D) return;
     var ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     scene.kind = kind;
+    scene.hits = [];
 
     if (kind === "penalty" && room.phase === "answering" && room.myAnswer == null) {
       canvas.style.touchAction = "none";
@@ -1744,13 +1766,50 @@
       });
     }
 
+    if (isBoard) {
+      canvas.style.touchAction = "manipulation";
+      canvas.addEventListener("pointerdown", function (e) {
+        var r = app.room;
+        if (!r || !r.board || r.phase !== "answering" || r.board.over) return;
+        if (r.board.turn !== r.me) return;
+        var rect = canvas.getBoundingClientRect();
+        var px = ((e.clientX - rect.left) / rect.width) * canvas.width;
+        var py = ((e.clientY - rect.top) / rect.height) * canvas.height;
+        var best = null;
+        var bestD = Infinity;
+        for (var i = 0; i < scene.hits.length; i += 1) {
+          var h = scene.hits[i];
+          var dx = h.x - px;
+          var dy = h.y - py;
+          var d = dx * dx + dy * dy;
+          if (d < bestD) {
+            bestD = d;
+            best = h;
+          }
+        }
+        if (!best || bestD > best.size * best.size) return;
+        move(r.board.type === "ttt" ? best.idx : best.col);
+      });
+    }
+
     var begin = performance.now();
     var frame = function (now) {
       if (!app.room || !app.room.round) return;
-      var st = sceneState(app.room, (now - begin) / 1000);
-      if (kind === "penalty") window.Jodi3D.penalty(ctx, st);
-      else if (kind === "meter") window.Jodi3D.hoop(ctx, st);
-      else window.Jodi3D.cricket(ctx, st);
+      var t = (now - begin) / 1000;
+      if (isBoard) {
+        scene.hits = window.Jodi3D.board(ctx, {
+          type: app.room.board ? app.room.board.type : "c4",
+          cells: app.room.board ? app.room.board.cells : [],
+          turn: app.room.board ? app.room.board.turn : null
+        });
+      } else if (sport) {
+        var st = sceneState(app.room, t);
+        if (kind === "penalty") window.Jodi3D.penalty(ctx, st);
+        else if (kind === "meter") window.Jodi3D.hoop(ctx, st);
+        else window.Jodi3D.cricket(ctx, st);
+      } else {
+        window.Jodi3D.stage(ctx, { kind: stageTheme, t: t });
+      }
       scene.raf = requestAnimationFrame(frame);
     };
     scene.raf = requestAnimationFrame(frame);
