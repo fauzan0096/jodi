@@ -27,6 +27,26 @@
     { id: "tap", cat: "Arcade", title: "Tap Duel", sub: "10 second, ek ungli", emoji: "⚡", tint: "rose" }
   ];
 
+  var GAME_TAGS = {
+    daily: "daily",
+    "this-or-that": "5 pick",
+    never: "5 card",
+    who: "5 votes",
+    cards: "8 card",
+    connect4: "board",
+    ttt: "board",
+    quiz: "5 q",
+    spell: "5 word",
+    penalty: "10 shot",
+    cricket: "24 ball",
+    meter: "10 shot",
+    draw: "90 sec",
+    rps: "best of 5",
+    duck: "15 sec",
+    react: "1 tap",
+    tap: "10 sec"
+  };
+
   function gameById(id) {
     for (var i = 0; i < GAMES.length; i += 1) {
       if (GAMES[i].id === id) return GAMES[i];
@@ -715,7 +735,7 @@
     return topBar() +
       '<section class="card hero">' +
         '<p class="kicker">do logon ke liye</p>' +
-        '<h1 class="h1">Ek room, do phone,<br>ek hi game.</h1>' +
+        '<h1 class="h1">Ek room, do phone,<br>ek hi <em>game</em>.</h1>' +
         '<p class="sub">Koi account nahi, koi password nahi. Bas naam, aur ek 6-letter code.</p>' +
       "</section>" +
       '<section class="card">' +
@@ -753,7 +773,7 @@
     return topBar() +
       '<section class="card hero">' +
         '<p class="kicker">shuru karo</p>' +
-        '<h1 class="h1">Room banao,<br>ya code daalo.</h1>' +
+        '<h1 class="h1">Room banao,<br>ya <em>code</em> daalo.</h1>' +
       "</section>" +
       ritualCard() +
       '<section class="card">' +
@@ -833,9 +853,9 @@
     var groups = cats.map(function (cat) {
       var tiles = GAMES.filter(function (g) { return g.cat === cat; }).map(function (g) {
         return '<button class="tile t-' + g.tint + '" data-act="start" data-game="' + g.id + '">' +
-          '<span class="tile-emoji">' + g.emoji + "</span>" +
-          '<span class="tile-title">' + esc(g.title) + "</span>" +
-          '<span class="tile-sub">' + esc(g.sub) + "</span>" +
+          '<span class="tile-art">' + g.emoji + "</span>" +
+          '<span class="tile-tag">' + esc(GAME_TAGS[g.id] || "2 min") + "</span>" +
+          '<span class="tile-badge">' + esc(g.title) + "</span>" +
           "</button>";
       }).join("");
       return '<h2 class="h2">' + esc(cat) + "</h2>" + '<div class="grid">' + tiles + "</div>";
@@ -1247,7 +1267,15 @@
       prompt = round.batter === room.me ? "Tum batting pe ho — shot chuno" : "Tum bowling kar rahe ho — delivery chuno";
     }
 
-    return head +
+    var hud = '<div class="hud">' +
+      '<span class="hud-pill me">' + esc(room.players[room.me] || "Tum") + " " +
+        (room.score ? (room.score[room.me] || 0) : 0) + "</span>" +
+      '<span class="hud-pill them">' + esc(room.players[1 - room.me] || "Partner") + " " +
+        (room.score ? (room.score[1 - room.me] || 0) : 0) + "</span>" +
+      '<button class="hud-pill hud-leave" data-act="lobby">CHHODO</button>' +
+      "</div>";
+
+    return head + hud +
       (round.kind === "cricket" ? cricketBoard(room) : "") +
       (round.kind === "penalty" ? penaltyBoard(room) : "") +
       '<section class="card">' +
@@ -2475,6 +2503,22 @@
       '<button class="btn ghost" data-sheet="watch-stop">Band karo</button>';
   }
 
+  function bottomNav() {
+    var parts = (location.hash || "#/").replace(/^#/, "").split("/").filter(Boolean);
+    var here = parts[0] || "";
+    var items = [
+      { href: "#/", label: "Home", icon: "🏠", key: "" },
+      { href: "#/book", label: "Kitaab", icon: "📖", key: "book" },
+      { href: "#/notes", label: "Notes", icon: "💬", key: "notes" },
+      { href: "#/us", label: "Tum", icon: "👤", key: "us" }
+    ];
+    return '<nav class="nav">' + items.map(function (it) {
+      var on = (here === "#" ? "" : here) === it.key ? " on" : "";
+      return '<a href="' + it.href + '" class="' + on.trim() + '">' +
+        it.icon + "<span>" + it.label + "</span></a>";
+    }).join("") + "</nav>";
+  }
+
   /* -------------------------------------------------------------- render */
 
   function render() {
@@ -2513,7 +2557,7 @@
       html = gameView();
     }
 
-    root.innerHTML = html;
+    root.innerHTML = html + (app.name && parts[0] !== "g" ? bottomNav() : "");
     window.scrollTo(0, 0);
     if (app.tapRunning) paintTap();
     armReact();

@@ -1330,3 +1330,271 @@ html, body { overflow-x: hidden; }
   border-radius: 14px;
   box-shadow: 0 22px 40px -24px rgba(0, 0, 0, .7), inset 0 0 0 2px rgba(255, 255, 255, .35);
 }
+
+
+/* =====================================================================
+   KULFI-LIKE DARK CINEMA THEME
+   Deep plum/navy stage, coral accents, glossy game cards with cream
+   title badges, chunky buttons, face-off HUD. Overrides above.
+   ===================================================================== */
+
+:root {
+  --cream: #0B0A12;
+  --paper: #15111D;
+  --ink: #F7F0F4;
+  --muted: #A79BA6;
+  --rose: #FF8A9B;
+  --rose-soft: #3A1D2A;
+  --pista: #8FE3B0;
+  --pista-soft: #17352A;
+  --saffron: #F5C25B;
+  --saffron-soft: #3A2C15;
+  --line: rgba(255, 255, 255, .09);
+  --shadow: 0 24px 60px -30px rgba(0, 0, 0, .95);
+  --r: 26px;
+}
+
+body {
+  background:
+    radial-gradient(120% 55% at 50% -8%, rgba(255, 90, 120, .30), transparent 62%),
+    radial-gradient(90% 45% at 88% 10%, rgba(120, 60, 200, .22), transparent 62%),
+    linear-gradient(180deg, #0B0A12 0%, #0A0810 55%, #120A12 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+}
+
+.app { padding: 18px 16px 104px; }
+
+/* ---- surfaces ---- */
+
+.card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .02));
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.hero {
+  background:
+    radial-gradient(90% 70% at 20% 0%, rgba(255, 120, 140, .22), transparent 70%),
+    linear-gradient(170deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+}
+.soft { background: rgba(255, 255, 255, .04); }
+
+.kicker { color: #FF9DB0; font-weight: 800; letter-spacing: .16em; }
+.h1 { font-weight: 800; letter-spacing: -.02em; }
+.h1 em { font-style: normal; color: #FF8A9B; }
+.h2:not(.tight) { color: #8E8593; }
+.sub { color: #B4AAB6; }
+.tiny { color: #8E8593; }
+.linky { color: #FF9DB0; }
+
+.brand { color: #FFF3E4; }
+.brand::after { background: #FF8A9B; }
+.pair { background: rgba(255, 255, 255, .07); border-color: var(--line); color: #D8CDD7; }
+.pair span { color: #FF8A9B; }
+
+/* ---- buttons ---- */
+
+.btn {
+  background: linear-gradient(180deg, #FF8AA0, #F2547A);
+  color: #2A0710;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 900;
+  border-radius: 18px;
+  box-shadow: 0 8px 0 -1px #B23A57, 0 22px 34px -22px rgba(255, 90, 120, .9);
+}
+.btn:active { transform: translateY(3px) scale(.99); box-shadow: 0 4px 0 -1px #B23A57; }
+.btn.ghost {
+  background: rgba(255, 255, 255, .07);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
+  box-shadow: none;
+  border-radius: 16px;
+}
+.btn.danger { color: #FF8A9B; }
+.mini { background: rgba(255, 255, 255, .08); color: var(--ink); border-color: var(--line); }
+
+.pill {
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+/* ---- game cards (the Kulfi "card on a table" look) ---- */
+
+.grid { gap: 14px; }
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 168px;
+  padding: 8px 8px 46px;
+  border-radius: 20px;
+  border: 3px solid rgba(255, 243, 228, .92);
+  background: linear-gradient(180deg, #20202E, #14121C);
+  box-shadow: 0 20px 32px -20px rgba(0, 0, 0, .95), inset 0 1px 0 rgba(255, 255, 255, .14);
+  overflow: hidden;
+  text-align: center;
+  transform: perspective(760px) rotateX(5deg);
+  transition: transform .16s ease;
+}
+.tile:active { transform: perspective(760px) rotateX(0deg) scale(.97); }
+
+.tile-art {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 46px;
+  line-height: 1;
+  border-radius: 14px;
+  text-shadow: 0 6px 14px rgba(0, 0, 0, .45);
+}
+.t-rose .tile-art { background: radial-gradient(85% 85% at 30% 18%, rgba(255, 138, 155, .45), rgba(60, 20, 32, .15)); }
+.t-pista .tile-art { background: radial-gradient(85% 85% at 30% 18%, rgba(143, 227, 176, .40), rgba(20, 45, 35, .15)); }
+.t-saffron .tile-art { background: radial-gradient(85% 85% at 30% 18%, rgba(245, 194, 91, .45), rgba(55, 40, 12, .15)); }
+
+.tile-badge {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: 7px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: #FFF3E4;
+  color: #24121B;
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 900;
+  font-size: 13.5px;
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: .01em;
+  box-shadow: 0 3px 0 #C79B7A;
+}
+
+.tile-tag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #F5C25B;
+  color: #0B0A12;
+  font-size: 8.5px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+/* ---- face-off HUD ---- */
+
+.hud { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
+.hud-pill {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40vw;
+}
+.hud-pill.me { color: #FF9DB0; }
+.hud-pill.them { color: #8FE3B0; }
+.hud-leave {
+  margin-left: auto;
+  background: rgba(255, 90, 110, .18);
+  border-color: rgba(255, 120, 140, .35);
+  color: #FF9DB0;
+  font-size: 10.5px;
+  letter-spacing: .1em;
+  cursor: pointer;
+}
+
+/* ---- bottom nav ---- */
+
+.nav {
+  position: fixed;
+  left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  gap: 4px;
+  padding: 7px;
+  border-radius: 999px;
+  background: rgba(18, 14, 24, .94);
+  border: 1px solid var(--line);
+  box-shadow: 0 22px 44px -20px #000;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.nav a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 13px;
+  border-radius: 999px;
+  color: #B7ACB6;
+  text-decoration: none;
+  font-size: 11.5px;
+  font-weight: 800;
+}
+.nav a.on { background: #FFF3E4; color: #20111A; }
+
+/* ---- forms, sheet, call ---- */
+
+.input {
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+.input::placeholder { color: #7E7480; }
+.input:focus { border-color: #FF8A9B; box-shadow: 0 0 0 3px rgba(255, 138, 155, .18); }
+.field span { color: #9C92A0; }
+
+.sheet, .call-card { background: #16121E; border-color: var(--line); }
+.sheet-head { color: #FFF3E4; }
+.sheet-foot { border-color: var(--line); }
+.bubble.theirs { background: rgba(255, 255, 255, .08); border-color: var(--line); color: var(--ink); }
+
+.stat { background: rgba(255, 255, 255, .05); border-color: var(--line); }
+.stat b { color: #FFF3E4; }
+
+.choice {
+  background: rgba(255, 255, 255, .06);
+  border-color: var(--line);
+  color: var(--ink);
+}
+.choice:active { background: rgba(255, 138, 155, .22); }
+
+.pick, .quote, .scoreboard, .kick-row, .board-grid, .note { background: rgba(255, 255, 255, .05); border-color: var(--line); }
+.pick b, .page-q, .prompt, .page-game { color: var(--ink); }
+.page-q { color: #FFF3E4; }
+.page-a b { color: #FF9DB0; }
+.badge.yes { background: rgba(143, 227, 176, .18); color: #A9F0C6; }
+.badge.no { background: rgba(255, 138, 155, .18); color: #FFB3C1; }
+.verdict.good { color: #A9F0C6; }
+.verdict.bad { color: #FFB3C1; }
+
+.scene { box-shadow: inset 0 0 70px rgba(0, 0, 0, .55), 0 22px 40px -26px #000; }
+
+.board-grid .cell { background: rgba(255, 255, 255, .10); }
+.board-grid.ttt .cell { background: rgba(255, 255, 255, .10); color: #FFF3E4; }
+.board-grid.ttt .cell.p0 { background: rgba(255, 138, 155, .30); color: #FFD9E1; }
+.board-grid.ttt .cell.p1 { background: rgba(245, 194, 91, .30); color: #FFE9BE; }
+
+.warn { border-color: rgba(255, 138, 155, .35); background: rgba(255, 90, 120, .12); }
