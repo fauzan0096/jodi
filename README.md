@@ -137,8 +137,13 @@ koi image asset nahi (isliye app halka aur privacy-safe rehta hai).
 
 ## 3D look — saare 17 games
 
-`scene3d.js` ek chhota perspective renderer hai — **Canvas 2D + asli projection**, koi WebGL
-ya library nahi. Har point metres me (x, y, depth) hota hai aur screen pe project hota hai.
+**Penalty ab asli WebGL hai** (`game3d.js` + repo me vendored `three.module.min.js`, r160):
+asli meshes (goal posts cylinders, net lines, keeper with shirt/shorts/skin/hair, ball sphere),
+hemisphere + directional light with **shadows**, fog, a camera that pushes in during the shot,
+and glowing aim rings. Agar WebGL/three kisi phone pe na chale, wahi scene Canvas 2D
+(`scene3d.js`) pe gir jaata hai — kaali screen nahi.
+
+`scene3d.js` (Canvas 2D + asli projection) baaki sab chalata hai:
 
 - **Penalty** — goal post + net + keeper (dive) + ball; goal pe tap karke shoot, GOAL/SAVE.
 - **Cricket** — pitch, dono stumps, batter, bowler; chauka hawa me, OUT pe stumps.

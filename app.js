@@ -1775,12 +1775,38 @@
     if (!isBoard && !sport && !stageTheme) return;
 
     var canvas = document.getElementById("scene");
-    if (!canvas || !window.Jodi3D) return;
-    var ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!canvas) return;
 
     scene.kind = kind;
     scene.hits = [];
+    var begin = performance.now();
+
+    /* asli WebGL (three.js) — abhi penalty scene */
+    if (kind === "penalty" && window.Jodi3DThree && window.Jodi3DThree.mount &&
+        window.Jodi3DThree.mount(canvas)) {
+      canvas = document.getElementById("scene") || canvas;
+      canvas.style.touchAction = "none";
+      canvas.addEventListener("pointerdown", function (e) {
+        if (!app.room || app.room.phase !== "answering" || app.room.myAnswer != null) return;
+        var rect = canvas.getBoundingClientRect();
+        var fx = (e.clientX - rect.left) / rect.width;
+        var zone = fx < 0.36 ? 0 : fx > 0.64 ? 2 : 1;
+        app.aim = { zone: zone };
+        submit(String(zone));
+      });
+      var loop3d = function (now) {
+        if (!app.room || !app.room.round) return;
+        window.Jodi3DThree.update(sceneState(app.room, (now - begin) / 1000));
+        window.Jodi3DThree.draw();
+        scene.raf = requestAnimationFrame(loop3d);
+      };
+      scene.raf = requestAnimationFrame(loop3d);
+      return;
+    }
+
+    if (!window.Jodi3D) return;
+    var ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
     if (kind === "penalty" && room.phase === "answering" && room.myAnswer == null) {
       canvas.style.touchAction = "none";
@@ -2728,6 +2754,9 @@
   if (app.code && app.pid) startSync();
 
   registerSw();
+  window.addEventListener("jodi3d", function () {
+    if (app.room) startScene();
+  });
   checkVersion();
   setInterval(checkVersion, 90000);
   document.addEventListener("visibilitychange", function () {

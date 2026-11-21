@@ -12,6 +12,8 @@ const SHELL = [
   "/app.js",
   "/local.js",
   "/scene3d.js",
+  "/game3d.js",
+  "/three.module.min.js",
   "/styles.css",
   "/content.json"
 ];
