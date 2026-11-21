@@ -18,6 +18,7 @@ const FILES = {
   "/": ["index.html", "text/html; charset=utf-8"],
   "/index.html": ["index.html", "text/html; charset=utf-8"],
   "/app.js": ["app.js", "application/javascript; charset=utf-8"],
+  "/local.js": ["local.js", "application/javascript; charset=utf-8"],
   "/styles.css": ["styles.css", "text/css; charset=utf-8"],
   "/content.json": ["content.json", "application/json; charset=utf-8"]
 };
@@ -364,6 +365,7 @@ function view(room, id) {
       batter: round.batter == null ? null : round.batter
     } : null,
     board: room.board ? {
+      type: room.board.type,
       cells: room.board.cells,
       turn: room.board.turn,
       over: room.board.over,

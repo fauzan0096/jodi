@@ -1,0 +1,12 @@
+{
+  "name": "jodi",
+  "version": "2.0.0",
+  "description": "Do phone, ek game — long distance couples ke liye. Zero dependency.",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build:local": "node build-local.js"
+  },
+  "engines": { "node": ">=18" }
+}

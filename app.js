@@ -51,6 +51,7 @@
     reactReady: false,
     reactAt: 0,
     reactTimer: null,
+    local: false,
     live: null,
     liveOpen: false,
     liveWatchdog: null,
@@ -79,8 +80,8 @@
     try {
       localStorage.setItem(LS, JSON.stringify({
         name: app.name,
-        code: app.code,
-        pid: app.pid,
+        code: app.local ? "" : app.code,
+        pid: app.local ? "" : app.pid,
         notes: app.notes,
         book: app.book,
         bookKeys: app.bookKeys
@@ -194,6 +195,9 @@
   }
 
   function api(path, body) {
+    if (app.local && window.JodiLocal) {
+      return Promise.resolve(window.JodiLocal.handle(path, body || null));
+    }
     var opts = body ? {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -255,7 +259,7 @@
   function startPolling() {
     stopPolling();
     pollOnce();
-    app.poll = setInterval(pollOnce, 800);
+    app.poll = setInterval(pollOnce, app.local ? 500 : 800);
   }
 
   function stopLive() {
@@ -276,7 +280,7 @@
     stopPolling();
     if (!app.code || !app.pid) return;
     pollOnce();
-    if (typeof EventSource === "undefined") {
+    if (app.local || typeof EventSource === "undefined") {
       startPolling();
       return;
     }
@@ -366,6 +370,7 @@
   }
 
   function forgetRoom(message) {
+    app.local = false;
     app.code = "";
     app.pid = "";
     app.room = null;
@@ -406,16 +411,33 @@
       render();
     }).catch(function (err) {
       toast("Server se baat nahi hui: " + ((err && err.message) || "network"));
-      pingServer().then(render);
+      pingServer().then(refreshServerLine);
     });
   }
 
   function createDemo() {
     if (!app.name) return toast("Pehle naam");
-    api("/api/demo", { name: app.name }).then(function (res) {
-      if (!res || !res.ok) {
-        if (res && res.gate) return toast("Preview session khatam — toolbar se Run dobara dabao");
-        return toast((res && res.error) || "Demo nahi khula");
+    app.local = false;
+    api("/api/demo", { name: app.name }).catch(function () { return null; }).then(function (res) {
+      if (res && res.ok) return res;
+      if (res && !res.gate && res.error) {
+        toast(res.error);
+        return null;
+      }
+      /* server nahi mila — demo browser ke andar hi chalao */
+      if (!window.JodiLocal) {
+        toast("Server nahi mila");
+        refreshServerLine();
+        return null;
+      }
+      app.local = true;
+      return api("/api/demo", { name: app.name });
+    }).then(function (res) {
+      if (!res) return;
+      if (!res.ok) {
+        app.local = false;
+        toast(res.error || "Demo nahi khula");
+        return;
       }
       app.code = res.code;
       app.pid = res.pid;
@@ -424,9 +446,7 @@
       save();
       startSync();
       render();
-      toast("Demo ready — koi bhi game chuno");
-    }).catch(function (err) {
-      toast("Server se baat nahi hui: " + ((err && err.message) || "network"));
+      toast(app.local ? "Offline demo ready — bina server ke chal raha hai" : "Demo ready — koi bhi game chuno");
     });
   }
 
@@ -449,7 +469,7 @@
       render();
     }).catch(function (err) {
       toast("Server se baat nahi hui: " + ((err && err.message) || "network"));
-      pingServer().then(render);
+      pingServer().then(refreshServerLine);
     });
   }
 
@@ -690,7 +710,7 @@
       '<section class="card hero">' +
         '<p class="kicker">do logon ke liye</p>' +
         '<h1 class="h1">Ek room, do phone,<br>ek hi game.</h1>' +
-        '<p class="sub">Koi account nahi, koi password nahi. Bas naam, aur ek 4-letter code.</p>' +
+        '<p class="sub">Koi account nahi, koi password nahi. Bas naam, aur ek 6-letter code.</p>' +
       "</section>" +
       '<section class="card">' +
         '<label class="field"><span>Tumhara naam</span>' +
@@ -699,16 +719,28 @@
       "</section>";
   }
 
-  function serverLine() {
+  function serverInner() {
     var p = app.ping;
     if (!p) return '<p class="tiny center">server check ho raha hai…</p>';
-    if (p.ok) return '<p class="tiny center">server: theek hai · ' + p.ms + "ms</p>";
+    if (p.ok) return '<p class="tiny center"><span class="dot ok"></span>server theek hai · ' + p.ms + "ms</p>";
     if (p.gate) {
-      return '<p class="tiny center" style="color:#A63A58">Preview session khatam ho gaya — ' +
-        "toolbar se <b>Run</b> dobara dabao.</p>";
+      return '<div class="card warn"><p class="kicker">preview session</p>' +
+        '<p class="mid">Preview session khatam ho gaya — toolbar se <b>Run</b> dobara dabao.</p></div>';
     }
-    return '<p class="tiny center" style="color:#A63A58">server tak nahi pahunch raha (' +
-      esc(p.why) + ') · <a href="#" data-act="ping" style="color:var(--rose)">dobara check</a></p>';
+    return '<div class="card warn"><p class="kicker">server nahi mila</p>' +
+      '<p class="mid">Do phone se khelne ke liye Jodi ka server chalna chahiye (<code>npm start</code> ya deploy). ' +
+      "Abhi <b>Demo kholo</b> dabao — woh bina server ke, Jodi Bot ke saath, saare games dikha dega.</p>" +
+      '<p class="tiny">(' + esc(p.why) + ') · <a href="#" data-act="ping" class="linky">dobara check</a></p></div>';
+  }
+
+  function serverLine() {
+    return '<div id="server-line">' + serverInner() + "</div>";
+  }
+
+  /* sirf server wali line badlo — baaki page (aur type kiya hua text) ko mat chhedo */
+  function refreshServerLine() {
+    var el = document.getElementById("server-line");
+    if (el) el.innerHTML = serverInner();
   }
 
   function doorView() {
@@ -761,8 +793,10 @@
       '<section class="card hero connecting">' +
         '<p class="kicker">room ' + esc(app.code) + "</p>" +
         '<h1 class="h1 small">Jud raha hai…</h1>' +
-        '<p class="sub">Ek second.</p>' +
-      "</section>";
+        '<p class="sub">Ek second. Zyada der lage to server band hai ya room mit gaya.</p>' +
+        '<button class="btn ghost" data-act="leave">Room chhodo</button>' +
+      "</section>" +
+      serverLine();
   }
 
   function lobbyView() {
@@ -2337,7 +2371,7 @@
     var act = el.getAttribute("data-act");
 
     if (act === "save-name") { saveName(); return; }
-    if (act === "ping") { pingServer().then(render); return; }
+    if (act === "ping") { app.ping = null; refreshServerLine(); pingServer().then(refreshServerLine); return; }
     if (act === "create") { createRoom(); return; }
     if (act === "demo") { createDemo(); return; }
     if (act === "join") { joinFromInput(); return; }
@@ -2425,9 +2459,9 @@
   load();
   render();
   pingServer().then(function (p) {
-    render();
+    refreshServerLine();
     if (p && !p.ok && !p.gate) {
-      setTimeout(function () { pingServer().then(render); }, 2000);
+      setTimeout(function () { pingServer().then(refreshServerLine); }, 2500);
     }
   });
   if (app.code && app.pid) startSync();

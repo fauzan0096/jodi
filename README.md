@@ -72,7 +72,10 @@ browser me possible nahi (`getDisplayMedia` iOS Safari me nahi hai).
 - `app.js` — client: rooms, 17 games, canvas, chat, call, sync, kitaab, privacy screen
 - `server.js` — Node server (zero dependency): rooms, rules, SSE, headers, rate limit, signaling
 - `content.json` — sawaal, options, trivia, cards, words
-- `styles.css` — cream-rose-pista look
+- `local.js` — **auto-generated** (`node build-local.js`): server ka logic browser ke andar, sirf offline Demo ke liye
+- `build-local.js` — local.js banane wala tool (server.js/content.json badalne ke baad chalao)
+- `package.json` — `npm start`
+- `styles.css` — cream-rose-pista designer look
 - `Dockerfile` — `node:22-slim`, `node server.js`, `$PORT` (8080)
 
 ## API
@@ -86,6 +89,16 @@ browser me possible nahi (`getDisplayMedia` iOS Safari me nahi hai).
 - `POST /api/paint` `{segments|clear}` · `POST /api/guess` `{text}`
 - `POST /api/say` `{text}` · `POST /api/call` `{action}` · `POST /api/signal` `{kind,data}`
 - `POST /api/watch` `{action, videoId}` · `POST /api/lobby` / `POST /api/leave`
+
+## Chalane ka tareeka
+
+```
+npm start        # ya: node server.js   → http://localhost:8080
+```
+
+Do phone se khelne ke liye server zaroori hai (Node 18+). Agar `index.html` seedha file se ya
+static hosting (GitHub Pages) pe khola, to **Demo kholo** bina server ke chalta hai (Jodi Bot ke
+saath, 17 games) — par room/code/chat/call ke liye server chahiye.
 
 ## Test karne ka tareeka
 
