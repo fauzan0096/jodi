@@ -135,6 +135,17 @@ isliye goal, pitch aur hoop me asli depth dikhti hai.
 Scene har frame (requestAnimationFrame) par room ke asli state se banta hai — koi video,
 koi image asset nahi (isliye app halka aur privacy-safe rehta hai).
 
+## Skills (vendor kiye hue)
+
+`skills/` me **threejs-game-skills** pack hai (MIT, [Majid Manzarpour](https://github.com/majidmanzarpour/threejs-game-skills)):
+`threejs-game-director` (router), `gameplay-systems`, `aaa-graphics-builder`, `game-ui-designer`,
+`debug-profiler`, `qa-release`, aur asset generators (3D/image/audio). Yeh sirf agent guidance hai —
+Dockerfile, server aur service worker inhe serve nahi karte. Routing aur project ke rules
+[AGENTS.md](AGENTS.md) me likhe hain.
+
+Agla step iska: three.js ko repo me vendor karke Penalty/Cricket/Basketball ko uspe rebuild
+karna (abhi `scene3d.js` wala Canvas 2D renderer chal raha hai).
+
 ## Update fauran kaise aata hai
 
 Teen layer, taaki purana version kabhi chipka na rahe:
