@@ -1821,6 +1821,15 @@
     }
 
     var begin = performance.now();
+
+    if (isBoard) {
+      scene.hits = window.Jodi3D.board(ctx, {
+        type: room.board ? room.board.type : "c4",
+        cells: room.board ? room.board.cells : [],
+        turn: room.board ? room.board.turn : null
+      });
+    }
+
     var frame = function (now) {
       if (!app.room || !app.room.round) return;
       var t = (now - begin) / 1000;

@@ -97,52 +97,87 @@
     ctx.restore();
   }
 
+  function capsule(ctx, x1, y1, x2, y2, r, fill) {
+    ctx.strokeStyle = fill;
+    ctx.lineWidth = Math.max(1.5, r * 2);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
   function figure(ctx, cam, opts) {
-    var wx = opts.x;
     var d = opts.d;
-    var scale = cam.s(opts.height || 1.8, d) / 100;
-    var bx = cam.x(wx, d);
+    var h = cam.s(opts.height || 1.8, d);
+    var bx = cam.x(opts.x, d);
     var by = cam.y(0, d);
-    var h = 100 * scale;
+    var arm = opts.arms || [1, 1];
+    var shirt = opts.color || "#F3E6D8";
+    var skin = opts.skin || "#E6A97F";
+    var shorts = opts.shorts || "#2C3E70";
+    var r = Math.max(1.5, h * 0.030);
+    var lean = opts.lean || 0;
 
     ctx.save();
     ctx.translate(bx, by);
-    if (opts.lean) ctx.rotate(opts.lean);
-    ctx.strokeStyle = opts.color || "#F3E6D8";
-    ctx.fillStyle = opts.color || "#F3E6D8";
-    ctx.lineCap = "round";
-    ctx.lineWidth = Math.max(2, h * 0.09);
+    ctx.rotate(lean);
 
-    /* legs */
-    ctx.beginPath();
-    ctx.moveTo(-h * 0.06, -h * 0.42);
-    ctx.lineTo(-h * 0.12, 0);
-    ctx.moveTo(h * 0.06, -h * 0.42);
-    ctx.lineTo(h * 0.14, 0);
-    ctx.stroke();
+    capsule(ctx, -h * 0.03, -h * 0.44, -h * 0.11, 0, r * 1.15, skin);
+    capsule(ctx, h * 0.03, -h * 0.44, h * 0.13, 0, r * 1.15, skin);
 
-    /* body */
-    ctx.beginPath();
-    ctx.moveTo(0, -h * 0.42);
-    ctx.lineTo(0, -h * 0.82);
-    ctx.stroke();
+    capsule(ctx, -h * 0.02, -h * 0.52, -h * 0.03, -h * 0.42, r * 1.85, shorts);
+    capsule(ctx, h * 0.02, -h * 0.52, h * 0.03, -h * 0.42, r * 1.85, shorts);
 
-    /* arms */
-    ctx.beginPath();
-    var arm = opts.arms || [1, 1];
-    ctx.moveTo(0, -h * 0.78);
-    ctx.lineTo(arm[0] * h * 0.26, -h * (arm[0] > 0 ? 0.95 : 0.55));
-    ctx.moveTo(0, -h * 0.78);
-    ctx.lineTo(arm[1] * h * 0.26, -h * (arm[1] > 0 ? 0.95 : 0.55));
-    ctx.stroke();
+    capsule(ctx, 0, -h * 0.52, 0, -h * 0.70, r * 2.05, shirt);
+    capsule(ctx, 0, -h * 0.68, 0, -h * 0.84, r * 1.7, shirt);
 
-    /* head */
+    capsule(ctx, -h * 0.04, -h * 0.80, -arm[0] * h * 0.26, -h * (arm[0] > 0 ? 0.99 : 0.60), r, skin);
+    capsule(ctx, h * 0.04, -h * 0.80, arm[1] * h * 0.26, -h * (arm[1] > 0 ? 0.99 : 0.60), r, skin);
+
+    ctx.fillStyle = skin;
     ctx.beginPath();
-    ctx.arc(0, -h * 0.9, h * 0.09, 0, Math.PI * 2);
+    ctx.arc(0, -h * 0.91, h * 0.085, 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.fillStyle = "rgba(26,18,24,0.9)";
+    ctx.beginPath();
+    ctx.arc(0, -h * 0.935, h * 0.086, Math.PI * 1.06, Math.PI * 1.94);
+    ctx.fill();
+
+    ctx.globalAlpha = 0.22;
+    capsule(ctx, -h * 0.03, -h * 0.80, -h * 0.03, -h * 0.56, r * 0.45, "#FFFFFF");
+    ctx.globalAlpha = 1;
 
     ctx.restore();
     return { h: h };
+  }
+
+  function crowd(ctx, cam) {
+    ctx.save();
+    for (var row = 0; row < 5; row += 1) {
+      var d = 15 + row * 1.4;
+      var y = cam.y(2.2 + row * 0.5, d);
+      var step = 0.75 + row * 0.18;
+      for (var x = -18; x < 18; x += step) {
+        var px = cam.x(x, d);
+        if (px < -24 || px > W + 24) continue;
+        ctx.fillStyle = "rgba(9,11,20," + (0.62 - row * 0.09) + ")";
+        var rr = Math.max(1.6, cam.s(0.17, d));
+        ctx.beginPath();
+        ctx.arc(px, y + (Math.abs(x) % 0.3) * 2, rr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  function vignette(ctx) {
+    var g = ctx.createRadialGradient(W / 2, H * 0.55, H * 0.22, W / 2, H * 0.55, H * 1.0);
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(1, "rgba(0,0,0,0.6)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
   }
 
   function ball(ctx, cam, wx, wy, d, radius, color) {
@@ -256,6 +291,7 @@
   api.penalty = function (ctx, st) {
     var cam = makeCam(1.85);
     stadium(ctx);
+    crowd(ctx, cam);
     ground(ctx, cam, 3, 13, 20, 20);
 
     /* penalty box + spot */
@@ -285,25 +321,61 @@
       arms: st.mode === "shot" && t > 0.35 ? [diveX === 0 ? 1 : 1, diveX === 0 ? 1 : 1] : [1, 1]
     });
 
-    /* ball */
-    var bx = 0;
-    var by = 0.11;
-    var bd = 8;
+    /* ball flight */
+    var spot = function (tt) {
+      var x = targetX * tt;
+      var dd = 8 + 2.9 * tt;
+      var yy = 0.11 + Math.sin(Math.PI * Math.min(1, tt * 0.9)) * 0.5 + 1.04 * tt * tt;
+      if (st.saved && tt > 0.75) {
+        x = keeperX + (x - keeperX) * (1 - tt) * 4;
+        dd = 10.2;
+        yy = 1.1;
+      }
+      return [x, yy, dd];
+    };
+
+    var pb = st.mode === "shot" ? spot(t) : [0, 0.11, 8];
     if (st.mode === "shot") {
-      bx = targetX * t;
-      bd = 8 + 2.9 * t;
-      by = 0.11 + Math.sin(Math.PI * Math.min(1, t * 0.9)) * 0.5 + (1.15 - 0.11) * t * t;
-      if (st.saved && t > 0.75) {
-        bx = keeperX + (bx - keeperX) * (1 - t) * 4;
-        bd = 10.2;
-        by = 1.1;
+      for (var i = 4; i >= 1; i -= 1) {
+        var q = spot(Math.max(0, t - i * 0.045));
+        ctx.save();
+        ctx.globalAlpha = 0.09 * (5 - i);
+        ball(ctx, cam, q[0], q[1], q[2], 0.1);
+        ctx.restore();
       }
     }
-    shadow(ctx, cam, bx, bd, 0.16);
-    ball(ctx, cam, bx, by, bd, 0.11);
+    shadow(ctx, cam, pb[0], pb[2], 0.16);
+    ball(ctx, cam, pb[0], pb[1], pb[2], 0.11);
 
     /* striker from behind */
-    figure(ctx, cam, { x: -0.55, d: 7.6, height: 1.82, color: "rgba(255,255,255,0.35)", arms: [-1, 1] });
+    figure(ctx, cam, {
+      x: -0.55,
+      d: 7.6,
+      height: 1.82,
+      color: "rgba(255,255,255,0.55)",
+      arms: [-1, 1]
+    });
+
+    /* bangaye: teen aim targets */
+    if (st.mode !== "shot") {
+      for (var z = 0; z < 3; z += 1) {
+        var zx = zones[z];
+        var px2 = cam.x(zx, 10.9);
+        var py2 = cam.y(1.15, 10.9);
+        var rr = Math.max(9, cam.s(0.42, 10.9));
+        ctx.save();
+        ctx.strokeStyle = st.aim && st.aim.zone === z ? "rgba(255,138,155,0.95)" : "rgba(255,255,255,0.3)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(px2, py2, rr, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = st.aim && st.aim.zone === z ? "rgba(255,138,155,0.22)" : "rgba(255,255,255,0.08)";
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    vignette(ctx);
 
     if (st.mode !== "shot" && st.aim) {
       var ax = cam.x(zones[st.aim.zone] || 0, 10.9);
@@ -381,11 +453,13 @@
       ctx.fillText("+" + score, W / 2, 104);
       ctx.restore();
     }
+    vignette(ctx);
   };
 
   api.cricket = function (ctx, st) {
     var cam = makeCam(2.1, 0.88, 0.5);
     stadium(ctx, "#06251C", "#0C3A2A");
+    crowd(ctx, cam);
     ground(ctx, cam, 2, 14, 24, 24, "#1C6B45", "#17583A");
 
     /* pitch strip */
@@ -452,6 +526,7 @@
       ctx.fillText(out ? "OUT!" : (runs === 0 ? "DOT BALL" : runs + " RUN" + (runs > 1 ? "S" : "")), W / 2, 96);
       ctx.restore();
     }
+    vignette(ctx);
   };
 
   /* ------------------------------------------------------- 3D board */
