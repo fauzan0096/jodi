@@ -75,6 +75,7 @@ browser me possible nahi (`getDisplayMedia` iOS Safari me nahi hai).
 - `local.js` — **auto-generated** (`node build-local.js`): server ka logic browser ke andar, sirf offline Demo ke liye
 - `build-local.js` — local.js banane wala tool (server.js/content.json badalne ke baad chalao)
 - `package.json` — `npm start`
+- `sw.js` — service worker: app shell cache + **naya deploy turant activate**
 - `styles.css` — cream-rose-pista designer look
 - `Dockerfile` — `node:22-slim`, `node server.js`, `$PORT` (8080)
 
@@ -116,6 +117,24 @@ bot khud jawab/chaal karta hai (1–2 second ke andar), tum Next dabate ho.
   khatam, bot guesser ho to do-guess me word pakad leta hai.
 - Demo room bhi memory me hi hai — 3 ghante me khud mit jaata hai.
 - Asli partner ko bulana ho to wahi room code share kar do (bot ki jagah nahi milegi — naya room banao).
+
+## Update fauran kaise aata hai
+
+Teen layer, taaki purana version kabhi chipka na rahe:
+
+1. **Service worker (`sw.js`)** — `install` me `skipWaiting()`, `activate` me `clients.claim()`.
+   Naya deploy aate hi naya SW turant control le leta hai (page ek baar khud reload hota hai).
+   Fetch **network-first** hai: online ho to hamesha latest file, offline ho to cache.
+   `/api/*`, SSE aur strokes kabhi cache nahi hote.
+2. **Boot version** — server har start pe `BOOT` id banata hai aur `/api/version` pe deta hai.
+   Client boot pe, har 90 second me aur app foreground me aate hi isse check karta hai:
+   badal gaya to **turant reload** — par agar tum room me ho to reload nahi, toast aata hai
+   aur room chhodte hi reload ho jaata hai (khel beech me nahi tootta).
+3. **Cache headers** — `index.html` aur `sw.js` `no-cache` (browser hamesha naya maange),
+   baaki files 60s. `sw.js` khud bhi `worker-src 'self'` CSP me allowed hai.
+
+Matlab: tum GitHub pe file badlo → `Run`/Publish → jo bhi phone pe app khula hai,
+woh **~90 second ke andar (ya app foreground me aate hi)** naya version le leta hai.
 
 ## Deploy
 

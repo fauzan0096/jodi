@@ -381,6 +381,10 @@
     save();
     stopLive();
     stopPolling();
+    if (staleBuild) {
+      location.reload();
+      return;
+    }
     if (message) toast(message);
     render();
   }
@@ -2456,6 +2460,54 @@
     }
   });
 
+  /* ------------------------------------------------------ update engine */
+
+  var buildSeen = "";
+  var staleBuild = false;
+
+  function registerSw() {
+    if (!("serviceWorker" in navigator)) return;
+    var hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.register("/sw.js").then(function (reg) {
+      if (reg.update) reg.update().catch(function () {});
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible" && reg.update) {
+          reg.update().catch(function () {});
+        }
+      });
+    }).catch(function () {});
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (!hadController) return;
+      if (window.__jodiReload) return;
+      window.__jodiReload = true;
+      location.reload();
+    });
+  }
+
+  /* server har deploy pe naya BOOT id deta hai — dikhte hi reload */
+  function checkVersion() {
+    if (app.local) return;
+    api("/api/version").then(function (res) {
+      if (!res || !res.ok || !res.version) return;
+      var seen = "";
+      try { seen = localStorage.getItem("jodi.v") || ""; } catch (e) { seen = ""; }
+      if (!seen) {
+        try { localStorage.setItem("jodi.v", res.version); } catch (e) { /* ignore */ }
+        buildSeen = res.version;
+        return;
+      }
+      if (seen === res.version) return;
+      try { localStorage.setItem("jodi.v", res.version); } catch (e) { /* ignore */ }
+      buildSeen = res.version;
+      if (!app.code) {
+        location.reload();
+        return;
+      }
+      staleBuild = true;
+      toast("Naya version aa gaya — room chhodte hi reload ho jaayega");
+    }).catch(function () {});
+  }
+
   load();
   render();
   pingServer().then(function (p) {
@@ -2465,4 +2517,11 @@
     }
   });
   if (app.code && app.pid) startSync();
+
+  registerSw();
+  checkVersion();
+  setInterval(checkVersion, 90000);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") checkVersion();
+  });
 })();

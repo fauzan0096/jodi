@@ -19,6 +19,7 @@ const FILES = {
   "/index.html": ["index.html", "text/html; charset=utf-8"],
   "/app.js": ["app.js", "application/javascript; charset=utf-8"],
   "/local.js": ["local.js", "application/javascript; charset=utf-8"],
+  "/sw.js": ["sw.js", "application/javascript; charset=utf-8"],
   "/styles.css": ["styles.css", "text/css; charset=utf-8"],
   "/content.json": ["content.json", "application/json; charset=utf-8"]
 };
@@ -26,12 +27,14 @@ const FILES = {
 const rooms = new Map();
 const LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const TAP_MS = 12500;
+/* har deploy/restart pe naya — client isse dekh ke khud reload kar leta hai */
+const BOOT = String(Date.now());
 
 const SECURITY = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer",
   "Permissions-Policy": "camera=(self), microphone=(self), geolocation=(), payment=()",
-  "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://*.freemilk.app; frame-src https://www.youtube.com https://www.youtube-nocookie.com; media-src 'self' blob:; base-uri 'none'; form-action 'none'"
+  "Content-Security-Policy": "default-src 'self'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://*.freemilk.app; frame-src https://www.youtube.com https://www.youtube-nocookie.com; media-src 'self' blob:; base-uri 'none'; form-action 'none'"
 };
 const DUCK_MS = 15000;
 const DRAW_MS = 90000;
@@ -905,7 +908,7 @@ function sendFile(pathname, res) {
     }
     res.writeHead(200, Object.assign({}, SECURITY, {
       "Content-Type": entry[1],
-      "Cache-Control": entry[0] === "index.html" ? "no-cache" : "public, max-age=60",
+      "Cache-Control": (entry[0] === "index.html" || entry[0] === "sw.js") ? "no-cache" : "public, max-age=60",
       "Content-Length": data.length
     }));
     res.end(data);
@@ -1010,6 +1013,10 @@ const server = http.createServer((req, res) => {
   if (req.method === "GET" || req.method === "HEAD") {
     if (pathname === "/health" || pathname === "/api/ping") {
       sendJson(res, { ok: true, t: Date.now(), rooms: rooms.size });
+      return;
+    }
+    if (pathname === "/api/version") {
+      sendJson(res, { ok: true, version: BOOT });
       return;
     }
     if (pathname === "/api/state") {
