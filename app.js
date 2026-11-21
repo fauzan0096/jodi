@@ -186,18 +186,29 @@
 
   /* ----------------------------------------------------------------- api */
 
+  /* preview gate token (agar URL me hai) ko API calls ke saath bhi bhejo */
+  function apiUrl(path) {
+    var q = location.search || "";
+    if (q.length < 2) return path;
+    return path + (path.indexOf("?") >= 0 ? "&" : "?") + q.slice(1);
+  }
+
   function api(path, body) {
     var opts = body ? {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
-    } : { method: "GET" };
-    return fetch(path, opts).then(function (res) {
+    } : { method: "GET", cache: "no-store" };
+    return fetch(apiUrl(path), opts).then(function (res) {
+      var type = String(res.headers.get("content-type") || "");
       return res.text().then(function (text) {
+        if (type.indexOf("json") < 0) {
+          return { ok: false, gate: true, error: "session" };
+        }
         try {
           return JSON.parse(text);
         } catch (e) {
-          return { ok: false, error: "Server ne JSON nahi bheja (" + res.status + ")" };
+          return { ok: false, gate: true, error: "session" };
         }
       });
     });
@@ -209,13 +220,15 @@
     return api("/api/ping").then(function (res) {
       app.ping = {
         ok: !!(res && res.ok),
+        gate: !!(res && res.gate),
         ms: Date.now() - started,
-        why: res && res.ok ? "" : ((res && res.error) || "ajeeb jawab")
+        why: res && res.ok ? "" : (res && res.gate ? "preview session" : ((res && res.error) || "ajeeb jawab"))
       };
       return app.ping;
     }).catch(function (err) {
       app.ping = {
         ok: false,
+        gate: false,
         ms: Date.now() - started,
         why: (err && err.message) ? err.message : "network error"
       };
@@ -268,8 +281,8 @@
       return;
     }
     try {
-      app.live = new EventSource("/api/events?code=" + encodeURIComponent(app.code) +
-        "&pid=" + encodeURIComponent(app.pid));
+      app.live = new EventSource(apiUrl("/api/events?code=" + encodeURIComponent(app.code) +
+        "&pid=" + encodeURIComponent(app.pid)));
     } catch (e) {
       startPolling();
       return;
@@ -342,7 +355,8 @@
       if (res && res.ok && res.room) {
         applyRoom(res.room);
       } else if (res && !res.ok) {
-        if (res.gone) forgetRoom("Room band ho gaya — naya banao");
+        if (res.gate) toast("Preview session khatam — toolbar se Run dobara dabao");
+        else if (res.gone) forgetRoom("Room band ho gaya — naya banao");
         else toast(res.error || "Nahi hua");
       }
       return res;
@@ -379,7 +393,10 @@
   function createRoom() {
     if (!app.name) return toast("Pehle naam");
     api("/api/create", { name: app.name }).then(function (res) {
-      if (!res || !res.ok) return toast((res && res.error) || "Room nahi bana");
+      if (!res || !res.ok) {
+        if (res && res.gate) return toast("Preview session khatam — toolbar se Run dobara dabao");
+        return toast((res && res.error) || "Room nahi bana");
+      }
       app.code = res.code;
       app.pid = res.pid;
       app.room = res.room;
@@ -398,7 +415,10 @@
     if (code.length !== 6) return toast("6 letter ka code daalo");
     if (!app.name) return toast("Pehle naam likho");
     api("/api/join", { code: code, name: app.name }).then(function (res) {
-      if (!res || !res.ok) return toast((res && res.error) || "Join nahi hua");
+      if (!res || !res.ok) {
+        if (res && res.gate) return toast("Preview session khatam — toolbar se Run dobara dabao");
+        return toast((res && res.error) || "Join nahi hua");
+      }
       app.code = res.code;
       app.pid = res.pid;
       app.room = res.room;
@@ -663,6 +683,10 @@
     var p = app.ping;
     if (!p) return '<p class="tiny center">server check ho raha hai…</p>';
     if (p.ok) return '<p class="tiny center">server: theek hai · ' + p.ms + "ms</p>";
+    if (p.gate) {
+      return '<p class="tiny center" style="color:#A63A58">Preview session khatam ho gaya — ' +
+        "toolbar se <b>Run</b> dobara dabao.</p>";
+    }
     return '<p class="tiny center" style="color:#A63A58">server tak nahi pahunch raha (' +
       esc(p.why) + ') · <a href="#" data-act="ping" style="color:var(--rose)">dobara check</a></p>';
   }
@@ -2368,6 +2392,11 @@
 
   load();
   render();
-  pingServer().then(render);
+  pingServer().then(function (p) {
+    render();
+    if (p && !p.ok && !p.gate) {
+      setTimeout(function () { pingServer().then(render); }, 2000);
+    }
+  });
   if (app.code && app.pid) startSync();
 })();
